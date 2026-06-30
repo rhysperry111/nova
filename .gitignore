@@ -1,0 +1,21 @@
+# OpenTofu / Terraform — local state & working dirs
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+# NB: .terraform.lock.hcl is intentionally committed (provider version pinning).
+
+# Generated per-stage vars (regenerate with `make generate`)
+nova.auto.tfvars
+
+# Secrets — never commit. The `secrets.auto.tfvars.example` siblings are safe.
+secrets.auto.tfvars
+terraform.tfvars
+
+# Cluster credentials written by stage 01-cluster at apply time
+/talos/01-cluster/kubeconfig
+/talos/01-cluster/talosconfig
+
+# Vault init/unseal output
+vault.out
+talos/vault.out

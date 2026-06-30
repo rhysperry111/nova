@@ -1,0 +1,23 @@
+resource "helm_release" "tempo" {
+  name       = "tempo"
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "tempo"
+  namespace  = kubernetes_namespace_v1.monitoring.metadata[0].name
+  version    = "1.24.4"
+
+  # We create it manually above
+  create_namespace = false
+
+  values = [file("files/tempo-values.yaml")]
+
+  wait = true
+  # If the install fails, automatically roll back
+  atomic  = true
+  timeout = 120 # 2 minutes
+}
+
+resource "kubectl_manifest" "tempo_grafana_datasource" {
+  yaml_body = templatefile("templates/tempo-grafana-datasource.yaml.tpl", {
+    namespace = kubernetes_namespace_v1.monitoring.metadata[0].name
+  })
+}

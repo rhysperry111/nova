@@ -1,0 +1,77 @@
+config: #language=YAML
+  |-
+  distributor:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+  
+  stream_over_http_enabled: true
+  server:
+    http_listen_port: 3200
+  
+  compactor:
+    compaction:
+      compaction_window: 1h
+      block_retention: 720h # 1 month
+      max_block_bytes: 100_000_000
+  ingester:
+    trace_idle_period: 10s
+    max_block_duration: 30m
+    max_block_bytes: 107_374_182_400 # 100MB
+    complete_block_timeout: 15m
+    flush_check_period: 10s
+  query_frontend:
+    # 1MiB max query size - default is 128 KiB
+    max_query_expression_size_bytes: 1048576
+    metrics:
+      max_duration: 720h # 1 month
+  
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+      blocklist_poll: 5m
+      blocklist_poll_fallback: true
+      pool:
+        max_workers: 100
+        queue_depth: 10000
+  
+  metrics_generator:
+    metrics_ingestion_time_range_slack: 1m
+    registry:
+      external_labels:
+        source: tempo
+    storage:
+      path: /var/tempo/generator/wal
+      remote_write:
+        - url: "http://promstack-kube-prometheus-prometheus.monitoring:9090/api/v1/write"
+          send_exemplars: true
+      remote_write_flush_deadline: 1m
+      remote_write_add_org_id_header: false
+    traces_storage:
+      path: /var/tempo/generator/traces
+    processor:
+      local_blocks:
+        flush_to_storage: true
+  
+  overrides:
+    defaults:
+      metrics_generator:
+        processors: [ "service-graphs", "span-metrics", "local-blocks" ]
+
+persistence:
+  enabled: true
+  size: 50Gi
+tempo:
+  server:
+    http_listen_port: 3200
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://kube-prometheus-stack-prometheus.monitoring:9090/api/v1/write"

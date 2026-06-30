@@ -1,0 +1,122 @@
+# =============================================================================
+# nova.yaml — central configuration for the Nova homelab.
+# =============================================================================
+
+# --- Cluster identity & API endpoint (stage 01-cluster) ---
+cluster:
+  name: "nova"
+  vip: "10.205.10.10" # Control-plane VIP; Kubernetes API endpoint.
+
+# --- Node inventory: hostname -> primary (bond0) IPv4 (stage 01-cluster) ---
+nodes:
+  nova-1: "10.205.10.11"
+  nova-2: "10.205.10.12"
+  nova-3: "10.205.10.13"
+  nova-4: "10.205.10.14"
+
+# --- Networking (cross-cutting: cluster, net, platform) ---
+network:
+  node_subnet: "10.205.10.0/24" # bond0 subnet; BGP listen range; kubelet node-IP constraint.
+  gateway: "10.205.10.1"
+  dns_servers: ["10.205.10.1"]
+  pod_subnet: "10.206.0.0/16" # Cilium IPAM.
+  service_subnet: "10.207.0.0/16"
+  lb_pool_cidr: "10.208.0.0/16" # Cilium LB-IPAM pool; advertised /32s out of this. Must match net/bgp.tf prefix-list.
+
+# --- BGP peering (cross-cutting: net stage <-> platform cilium-bgp) ---
+# These MUST agree on both sides of the peering. Centralised here so the
+# UniFi FRR config (00-net/bgp.tf) and the Cilium CRs (02-platform/cilium-bgp.tf)
+# can never drift apart.
+bgp:
+  cilium_asn: 64512 # localASN on CiliumBGPClusterConfig / remote-as of CILIUM peer-group.
+  unifi_asn: 64513  # router bgp ASN on the gateway / peerASN on Cilium.
+  router_ip: "10.205.10.1" # UniFi gateway; Cilium peerAddress + FRR router-id.
+
+# --- UniFi network bootstrap (stage 00-net) ---
+net:
+  unifi_api_url: "https://10.205.20.1" # Controller URL the bootstrap stage talks to.
+  network_name: "Nova"
+  network_cidr: "10.205.10.1/24" # The network's own gateway address + prefix (unifi_network.subnet).
+  vlan: 10
+  dhcp_start: "10.205.10.11"
+  dhcp_stop: "10.205.10.249"
+
+# --- Ingress / TLS (cross-cutting: platform, platformservices, apps) ---
+ingress:
+  domain: "rhysperry.com" # Service hostnames: <svc>.<domain>.
+  class_name: "cilium"
+  cluster_issuer: "letsencrypt"
+
+tls:
+  acme_email: "nova-certs@rhysperry.com"
+  acme_server: "https://acme-v02.api.letsencrypt.org/directory"
+  acme_profile: "shortlived"
+
+# --- external-dns (stage 03-platformservices) ---
+external_dns:
+  domain_filters: ["rhysperry.com"] # Zones external-dns may manage. Empty == all zones the token sees.
+  txt_owner_id: "nova"
+  policy: "sync" # `sync` deletes records it no longer owns; `upsert-only` never deletes.
+  unifi_api_url: "https://10.205.10.1" # UniFi webhook target (manages internal DNS records).
+
+# --- Cloudflare R2 (stage 04-backups) — non-secret identifiers only ---
+# Access key id + secret access key are secrets -> 04-backups/secrets.auto.tfvars.
+r2:
+  account_id: "a0ea97f42822072a24b37b3564ddb09e"
+  bucket: "nova-velero"
+
+# =============================================================================
+# Versions — every externally-pinned dependency. Bump deliberately.
+# =============================================================================
+versions:
+  # Stage 01-cluster
+  talos: "v1.13.4"
+  kubernetes: "v1.36.2"
+
+  # Stage 02-platform
+  cilium: "1.19.5"
+  rook_ceph: "v1.20.1"
+  # Rook v1.20 stopped bundling the CSI drivers in the operator. The drivers are
+  # now installed by a separate ceph-csi-drivers chart from the ceph-csi-operator
+  # repo. This version tracks the ceph-csi-operator subchart pinned by rook-ceph
+  # v1.20.1 (Chart.yaml dependency). Bump it in lockstep with rook_ceph.
+  ceph_csi_drivers: "1.0.1"
+  metrics_server: "3.13.1"
+  kubevirt: "v1.8.4"
+  cdi: "v1.65.0"
+  gateway_api: "v1.5.1"
+
+  # Stage 03-platformservices
+  cert_manager: "v1.20.2"
+  external_dns: "1.21.1"
+  external_dns_unifi_webhook: "0.10.4"
+  argocd: "9.5.21"
+  kube_prometheus_stack: "86.2.3"
+  registry_image_tag: "3.1.1"
+  # CloudNativePG operator chart (cloudnative-pg/cloudnative-pg). Chart 0.28.3
+  # installs operator appVersion 1.29.x — >=1.26 is required for the
+  # declarative major-version upgrade path. Bump in lockstep with the cluster
+  # chart + operand image under stage 05.
+  cnpg_operator: "0.28.3"
+
+  # Stage 04-backups
+  # NB: these are the LIVE values (from the old terraform.auto.tfvars), which
+  # were ahead of the variables.tf defaults. Kept as-is so state doesn't move.
+  velero_chart: "12.0.3"
+  velero_plugin_for_aws_image: "velero/velero-plugin-for-aws:v1.13.2"
+  snapshot_controller: "5.1.1"
+
+  # Stage 05-apps
+  home_assistant_os: "17.3"
+  immich_chart: "0.12.0"
+  immich_image_tag: "v2.7.5"
+  # DB runs under CloudNativePG. The official `standard` operand image bundles
+  # pgvector (the only vector extension Immich needs now we're off VectorChord),
+  # so no third-party fork. Minor PG upgrades = bump this tag; CNPG rolls it.
+  immich_db_image: "ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie"
+  # cloudnative-pg/cluster chart — renders the Immich Postgres Cluster CR.
+  cnpg_cluster_chart: "0.6.1"
+
+  vaultwarden_chart: "0.39.0"
+  vaultwarden_image_tag: "1.36.0-alpine"
+  jellyfin_image: "jellyfin/jellyfin:10.11.11"

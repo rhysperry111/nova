@@ -1,0 +1,101 @@
+# Talos v1.13 machine configuration patch.
+#
+# Network is configured entirely with the modular config documents
+# (HostnameConfig, ResolverConfig, LinkAliasConfig, BondConfig,
+# Layer2VIPConfig) introduced in v1.13; the corresponding fields under
+# machine.network in v1alpha1 are all marked Deprecated.
+#
+# Gotcha: Talos's generated base config already includes a HostnameConfig
+# with `auto: stable`, and `auto` + `hostname` are mutually exclusive. We
+# strip `auto` via the `$patch: delete` directive (see Talos config
+# patching docs) before setting `hostname`.
+machine:
+  install:
+    diskSelector:
+      type: nvme
+    wipe: false
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - ${node_subnet}
+    # Rook needs a shared mount for /var/lib/rook with rshared propagation.
+    extraMounts:
+      - destination: /var/lib/rook
+        type: bind
+        source: /var/lib/rook
+        options:
+          - bind
+          - rshared
+          - rw
+  kernel:
+    modules:
+      - name: rbd
+      - name: nbd
+cluster:
+  network:
+    cni:
+      name: none
+    podSubnets:
+      - ${pod_subnet}
+    serviceSubnets:
+      - ${service_subnet}
+  proxy:
+    disabled: true
+---
+# Static hostname. The base config Talos generates includes a default
+# HostnameConfig with `auto: stable`; `auto` and `hostname` are mutually
+# exclusive, so the `$patch: delete` directive removes `auto` before
+# strategic merge sets `hostname`.
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto:
+  $patch: delete
+hostname: ${hostname}
+---
+# DNS resolvers. Replaces the deprecated machine.network.nameservers field.
+apiVersion: v1alpha1
+kind: ResolverConfig
+nameservers:
+%{ for dns in dns_servers ~}
+  - address: ${dns}
+%{ endfor ~}
+---
+# Pattern-aliased physical NICs. Each physical Ethernet link gets a stable
+# alias (nic0, nic1, ...) ordered by hardware address. Replaces the legacy
+# `bond.deviceSelectors: [{physical: true}]` selector. The CEL expression
+# matches non-virtual Ethernet links:
+#   - link.type == 1  → ARPHRD_ETHER (Ethernet, not loopback/IB/etc.)
+#   - link.kind == "" → not a bond/bridge/vlan/wireguard etc.
+apiVersion: v1alpha1
+kind: LinkAliasConfig
+name: nic%d
+selector:
+  match: link.type == 1 && link.kind == ""
+---
+# LACP bond over the two physical NICs (nic0, nic1). If a node has more than
+# two physical NICs the extras are aliased (nic2, ...) but not enslaved.
+# The default route is the entry with no `destination` (per Talos route
+# schema — `0.0.0.0/0` is rejected as not a valid prefix).
+apiVersion: v1alpha1
+kind: BondConfig
+name: bond0
+bondMode: 802.3ad
+xmitHashPolicy: layer3+4
+miimon: 100
+# Best-practice delays for 802.3ad — talosctl validate warns without them.
+updelay: 200
+downdelay: 200
+mtu: 9000
+links:
+  - nic0
+  - nic1
+addresses:
+  - address: ${node_cidr}
+routes:
+  - gateway: ${gateway}
+---
+# Shared control-plane VIP, layer-2 (gratuitous ARP) advertisement.
+apiVersion: v1alpha1
+kind: Layer2VIPConfig
+name: ${cluster_vip}
+link: bond0
