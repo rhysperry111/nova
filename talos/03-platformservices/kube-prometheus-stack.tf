@@ -186,7 +186,7 @@ resource "helm_release" "kube_prometheus_stack" {
               name = "rhys-discord"
               discord_configs = [
                 {
-                  webhook_url = "https://discord.com/api/webhooks/1512573997966168254/JsuomKYAGQfFh5IIeHKvaiWzikf4M77coXm8jy-k12A98s9B9XdksRgd_sihL_KFmAFa"
+                  webhook_url = var.alertmanager_discord_webhook
                 }
               ]
             }

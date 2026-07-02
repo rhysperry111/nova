@@ -233,3 +233,9 @@ variable "registry_storage_class" {
   type        = string
   default     = "ceph-block"
 }
+
+variable "alertmanager_discord_webhook" {
+  description = "Discord webhook URL for alertmanager"
+  type        = string
+  sensitive   = true
+}
