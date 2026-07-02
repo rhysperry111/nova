@@ -109,7 +109,7 @@ versions:
   # Stage 05-apps
   home_assistant_os: "17.3"
   immich_chart: "0.12.0"
-  immich_image_tag: "v2.7.5"
+  immich_image_tag: "v3.0.0"
   # DB runs under CloudNativePG. The official `standard` operand image bundles
   # pgvector (the only vector extension Immich needs now we're off VectorChord),
   # so no third-party fork. Minor PG upgrades = bump this tag; CNPG rolls it.
