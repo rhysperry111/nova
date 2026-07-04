@@ -239,6 +239,65 @@ variable "jellyfin_media_storage_class" {
   default     = "ceph-block"
 }
 
+################################################################################
+# your_spotify
+################################################################################
+
+variable "your_spotify_namespace" {
+  description = "Namespace the your_spotify server, web client, and Mongo live in."
+  type        = string
+  default     = "your-spotify"
+}
+
+variable "your_spotify_image_tag" {
+  description = "Tag shared by the yooooomi/your_spotify_server and yooooomi/your_spotify_client images. Bump both together."
+  type        = string
+  default     = "1.20.0"
+}
+
+variable "your_spotify_mongo_image" {
+  description = "MongoDB image for the your_spotify datastore. Mongo 8 is what upstream's compose ships."
+  type        = string
+  default     = "mongo:8.0"
+}
+
+variable "your_spotify_mongo_size" {
+  description = "PVC size for the Mongo /data/db volume holding the listening history."
+  type        = string
+  default     = "10Gi"
+}
+
+variable "your_spotify_mongo_storage_class" {
+  description = "StorageClass for the Mongo PVC. RWO — only the single Mongo pod mounts it."
+  type        = string
+  default     = "ceph-block"
+}
+
+variable "your_spotify_timezone" {
+  description = "TIMEZONE handed to the server; sets the day boundary for aggregated stats."
+  type        = string
+  default     = "Europe/London"
+}
+
+variable "your_spotify_public" {
+  description = <<-EOT
+    Spotify application Client ID (SPOTIFY_PUBLIC). Not strictly secret, but
+    lives alongside the secret in secrets.auto.tfvars for convenience. Create
+    the app at https://developer.spotify.com and add the server's OAuth
+    callback (https://api-spotify.<ingress_domain>/oauth/spotify/callback) to
+    its Redirect URIs.
+  EOT
+  type        = string
+  # No default — provide via 05-apps/secrets.auto.tfvars (gitignored).
+}
+
+variable "your_spotify_secret" {
+  description = "Spotify application Client Secret (SPOTIFY_SECRET). Sensitive; stored in a Secret consumed by the server pods."
+  type        = string
+  sensitive   = true
+  # No default — provide via 05-apps/secrets.auto.tfvars (gitignored).
+}
+
 variable "home_assistant_host_devices" {
   description = <<-EOT
     Host devices attached to the Home Assistant VM (typically USB radios like
