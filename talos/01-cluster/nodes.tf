@@ -27,6 +27,12 @@ resource "talos_machine" "n0" {
   machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[0].name].machine_configuration
   image                 = local.installer_image
   drain_on_upgrade      = true
+
+  timeouts = {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
 }
 
 resource "talos_machine" "n1" {
@@ -38,6 +44,12 @@ resource "talos_machine" "n1" {
   machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[1].name].machine_configuration
   image                 = local.installer_image
   drain_on_upgrade      = true
+
+  timeouts = {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
 }
 
 resource "talos_machine" "n2" {
@@ -49,6 +61,12 @@ resource "talos_machine" "n2" {
   machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[2].name].machine_configuration
   image                 = local.installer_image
   drain_on_upgrade      = true
+
+  timeouts = {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
 }
 
 resource "talos_machine" "n3" {
@@ -60,4 +78,10 @@ resource "talos_machine" "n3" {
   machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[3].name].machine_configuration
   image                 = local.installer_image
   drain_on_upgrade      = true
+
+  timeouts = {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
 }

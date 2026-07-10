@@ -15,6 +15,11 @@ resource "talos_cluster" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   kubernetes_version   = var.kubernetes_version
   control_plane_nodes  = values(var.nodes)
+
+  timeouts = {
+    create = "2h"
+    update = "2h"
+  }
 }
 
 data "talos_cluster_health" "this" {
