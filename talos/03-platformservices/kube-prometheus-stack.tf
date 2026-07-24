@@ -50,6 +50,13 @@ resource "helm_release" "kube_prometheus_stack" {
 
   values = compact([
     yamlencode({
+      crds = {
+        upgradeJob = {
+          enabled = true
+          forceConflicts = true
+        }
+      }
+
       grafana = {
         adminPassword = var.grafana_admin_password
 

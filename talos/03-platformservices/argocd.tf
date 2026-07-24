@@ -33,6 +33,9 @@ resource "helm_release" "argocd" {
       # ingress hostname all derive from it.
       global = {
         domain = "argocd.${var.ingress_domain}"
+        networkPolicy = {
+          create = false
+        }
       }
 
       # argocd-server serves both UI and gRPC on a single port. When TLS is

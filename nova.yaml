@@ -70,58 +70,58 @@ r2:
 # =============================================================================
 versions:
   # Stage 01-cluster
-  talos: "v1.13.4"
-  kubernetes: "v1.36.2"
+  talos: "v1.13.7"
+  kubernetes: "v1.36.3"
 
   # Stage 02-platform
-  cilium: "1.19.5"
-  rook_ceph: "v1.20.1"
+  cilium: "1.19.6"
+  rook_ceph: "v1.20.2"
   # Rook v1.20 stopped bundling the CSI drivers in the operator. The drivers are
   # now installed by a separate ceph-csi-drivers chart from the ceph-csi-operator
   # repo. This version tracks the ceph-csi-operator subchart pinned by rook-ceph
   # v1.20.1 (Chart.yaml dependency). Bump it in lockstep with rook_ceph.
-  ceph_csi_drivers: "1.0.1"
+  ceph_csi_drivers: "1.0.4"
   metrics_server: "3.13.1"
   kubevirt: "v1.8.4"
   cdi: "v1.65.0"
-  gateway_api: "v1.5.1"
+  gateway_api: "v1.6.1"
 
   # Stage 03-platformservices
-  cert_manager: "v1.20.2"
+  cert_manager: "v1.21.0"
   external_dns: "1.21.1"
-  external_dns_unifi_webhook: "0.10.4"
-  argocd: "9.5.21"
-  kube_prometheus_stack: "86.2.3"
+  external_dns_unifi_webhook: "0.10.9"
+  argocd: "10.2.1"
+  kube_prometheus_stack: "87.19.1"
   registry_image_tag: "3.1.1"
   # CloudNativePG operator chart (cloudnative-pg/cloudnative-pg). Chart 0.28.3
   # installs operator appVersion 1.29.x — >=1.26 is required for the
   # declarative major-version upgrade path. Bump in lockstep with the cluster
   # chart + operand image under stage 05.
-  cnpg_operator: "0.28.3"
+  cnpg_operator: "0.29.0"
 
   # Stage 04-backups
   # NB: these are the LIVE values (from the old terraform.auto.tfvars), which
   # were ahead of the variables.tf defaults. Kept as-is so state doesn't move.
-  velero_chart: "12.0.3"
-  velero_plugin_for_aws_image: "velero/velero-plugin-for-aws:v1.13.2"
-  snapshot_controller: "5.1.1"
+  velero_chart: "12.1.0"
+  velero_plugin_for_aws_image: "velero/velero-plugin-for-aws@sha256:8f22ca85b7c26fb4fdbaea8b142c6f7bc35078a21a301df66d7f32fe67edf8ca"
+  snapshot_controller: "5.2.0"
 
   # Stage 05-apps
-  home_assistant_os: "17.3"
+  home_assistant_os: "18.1"
   immich_chart: "0.12.0"
-  immich_image_tag: "v3.0.0"
+  immich_image_tag: "v3.0.3"
   # DB runs under CloudNativePG. The official `standard` operand image bundles
   # pgvector (the only vector extension Immich needs now we're off VectorChord),
   # so no third-party fork. Minor PG upgrades = bump this tag; CNPG rolls it.
-  immich_db_image: "ghcr.io/cloudnative-pg/postgresql:18.4-standard-trixie"
+  immich_db_image: "ghcr.io/cloudnative-pg/postgresql:18.4-202607200905-standard-trixie"
   # cloudnative-pg/cluster chart — renders the Immich Postgres Cluster CR.
-  cnpg_cluster_chart: "0.6.1"
+  cnpg_cluster_chart: "0.8.1"
 
-  vaultwarden_chart: "0.39.0"
-  vaultwarden_image_tag: "1.36.0-alpine"
+  vaultwarden_chart: "0.43.1"
+  vaultwarden_image_tag: "1.37.0-alpine"
   jellyfin_image: "jellyfin/jellyfin:10.11.11"
 
   # your_spotify — self-hosted Spotify stats. Server + web client share one
   # release tag (bump together); Mongo is the backing store.
-  your_spotify_image_tag: "1.20.0"
+  your_spotify_image_tag: "ca183c0d33fdede4f75b3def0d98702ce347020c"
   your_spotify_mongo_image: "mongo:8.0"

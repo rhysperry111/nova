@@ -226,7 +226,7 @@ resource "helm_release" "immich" {
 
   name       = "immich"
   namespace  = kubernetes_namespace_v1.immich.metadata[0].name
-  repository = "https://immich-app.github.io/immich-charts"
+  repository = "oci://ghcr.io/immich-app/immich-charts"
   chart      = "immich"
   version    = var.immich_chart_version
 
@@ -304,7 +304,7 @@ resource "helm_release" "immich" {
             }
           }
         }
-        
+
         controllers = {
           main = {
             containers = {
