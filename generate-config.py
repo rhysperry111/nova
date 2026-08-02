@@ -209,6 +209,7 @@ def generate_apps(cfg: dict, root: str) -> None:
         tfvars_line("vaultwarden_chart_version", v["vaultwarden_chart"]),
         tfvars_line("vaultwarden_image_tag", v["vaultwarden_image_tag"]),
         tfvars_line("jellyfin_image", v["jellyfin_image"]),
+        tfvars_line("librespeed_tag", v["librespeed_tag"]),
         tfvars_line("your_spotify_image_tag", v["your_spotify_image_tag"]),
         tfvars_line("your_spotify_mongo_image", v["your_spotify_mongo_image"]),
     ]

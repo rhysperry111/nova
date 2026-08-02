@@ -120,6 +120,7 @@ versions:
   vaultwarden_chart: "0.43.1"
   vaultwarden_image_tag: "1.37.0-alpine"
   jellyfin_image: "jellyfin/jellyfin:10.11.11"
+  librespeed_tag: "6.2.0"
 
   # your_spotify — self-hosted Spotify stats. Server + web client share one
   # release tag (bump together); Mongo is the backing store.

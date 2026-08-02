@@ -35,7 +35,7 @@ resource "kubernetes_deployment_v1" "librespeed" {
       spec {
         container {
           name  = "librespeed"
-          image = "ghcr.io/librespeed/speedtest:6.1.0"
+          image = "ghcr.io/librespeed/speedtest:${var.librespeed_tag}"
           port {
             container_port = 8080
             name           = "http"
