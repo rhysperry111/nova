@@ -31,6 +31,10 @@ machine:
     modules:
       - name: rbd
       - name: nbd
+  # It cooks without this :upside_down:
+  sysfs:
+    devices.system.cpu.intel_pstate.max_perf_pct: "50"
+    devices.system.cpu.intel_pstate.no_turbo: "1"
 cluster:
   network:
     cni:
