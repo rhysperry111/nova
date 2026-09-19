@@ -21,12 +21,14 @@ locals {
 }
 
 resource "talos_machine" "n0" {
-  node                  = local.ordered_nodes[0].ip
-  endpoint              = local.ordered_nodes[0].ip
-  client_configuration  = talos_machine_secrets.this.client_configuration
-  machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[0].name].machine_configuration
-  image                 = local.installer_image
-  drain_on_upgrade      = true
+  node                            = local.ordered_nodes[0].ip
+  endpoint                        = local.ordered_nodes[0].ip
+  client_configuration            = talos_machine_secrets.this.client_configuration
+  machine_configuration           = data.talos_machine_configuration.controlplane[local.ordered_nodes[0].name].machine_configuration
+  image                           = local.installer_image
+  drain_on_upgrade                = true
+  kubeconfig_wo                   = ephemeral.talos_cluster_kubeconfig.drain.kubeconfig_raw
+  ignore_kubernetes_upgrade_drift = true
 
   timeouts = {
     create = "2h"
@@ -38,12 +40,15 @@ resource "talos_machine" "n0" {
 resource "talos_machine" "n1" {
   depends_on = [talos_machine.n0]
 
-  node                  = local.ordered_nodes[1].ip
-  endpoint              = local.ordered_nodes[1].ip
-  client_configuration  = talos_machine_secrets.this.client_configuration
-  machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[1].name].machine_configuration
-  image                 = local.installer_image
-  drain_on_upgrade      = true
+  node                            = local.ordered_nodes[1].ip
+  endpoint                        = local.ordered_nodes[1].ip
+  client_configuration            = talos_machine_secrets.this.client_configuration
+  machine_configuration           = data.talos_machine_configuration.controlplane[local.ordered_nodes[1].name].machine_configuration
+  image                           = local.installer_image
+  drain_on_upgrade                = true
+  kubeconfig_wo                   = ephemeral.talos_cluster_kubeconfig.drain.kubeconfig_raw
+  ignore_kubernetes_upgrade_drift = true
+
 
   timeouts = {
     create = "2h"
@@ -55,12 +60,15 @@ resource "talos_machine" "n1" {
 resource "talos_machine" "n2" {
   depends_on = [talos_machine.n1]
 
-  node                  = local.ordered_nodes[2].ip
-  endpoint              = local.ordered_nodes[2].ip
-  client_configuration  = talos_machine_secrets.this.client_configuration
-  machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[2].name].machine_configuration
-  image                 = local.installer_image
-  drain_on_upgrade      = true
+  node                            = local.ordered_nodes[2].ip
+  endpoint                        = local.ordered_nodes[2].ip
+  client_configuration            = talos_machine_secrets.this.client_configuration
+  machine_configuration           = data.talos_machine_configuration.controlplane[local.ordered_nodes[2].name].machine_configuration
+  image                           = local.installer_image
+  drain_on_upgrade                = true
+  kubeconfig_wo                   = ephemeral.talos_cluster_kubeconfig.drain.kubeconfig_raw
+  ignore_kubernetes_upgrade_drift = true
+
 
   timeouts = {
     create = "2h"
@@ -72,12 +80,15 @@ resource "talos_machine" "n2" {
 resource "talos_machine" "n3" {
   depends_on = [talos_machine.n2]
 
-  node                  = local.ordered_nodes[3].ip
-  endpoint              = local.ordered_nodes[3].ip
-  client_configuration  = talos_machine_secrets.this.client_configuration
-  machine_configuration = data.talos_machine_configuration.controlplane[local.ordered_nodes[3].name].machine_configuration
-  image                 = local.installer_image
-  drain_on_upgrade      = true
+  node                            = local.ordered_nodes[3].ip
+  endpoint                        = local.ordered_nodes[3].ip
+  client_configuration            = talos_machine_secrets.this.client_configuration
+  machine_configuration           = data.talos_machine_configuration.controlplane[local.ordered_nodes[3].name].machine_configuration
+  image                           = local.installer_image
+  drain_on_upgrade                = true
+  kubeconfig_wo                   = ephemeral.talos_cluster_kubeconfig.drain.kubeconfig_raw
+  ignore_kubernetes_upgrade_drift = true
+
 
   timeouts = {
     create = "2h"

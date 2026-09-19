@@ -8,3 +8,9 @@ data "talos_client_configuration" "this" {
   endpoints            = values(var.nodes)
   nodes                = values(var.nodes)
 }
+
+ephemeral "talos_cluster_kubeconfig" "drain" {
+  cluster_name    = var.cluster_name
+  machine_secrets = talos_machine_secrets.this.machine_secrets
+  endpoint        = "https://${var.cluster_vip}:6443"
+}
