@@ -39,6 +39,14 @@ data "talos_image_factory_urls" "this" {
 
 # Per-node controlplane config (each is otherwise identical; only the hostname
 # patch differs).
+#
+# talos_version here is the machine-config *contract*, not the installed OS
+# version. At >= v1.14 the generator stops putting install / kubelet /
+# cluster.network / cluster.proxy / the control-plane taint in the v1alpha1
+# document and emits UnattendedInstallConfig, KubeletConfig, KubeNetworkConfig,
+# KubeProxyConfig, KubeFlannelCNIConfig and KubeNodeConfig instead. Every one of
+# those is patched as a document in patches/common.yaml; setting the old
+# v1alpha1 field alongside the document is a hard validation error.
 data "talos_machine_configuration" "controlplane" {
   for_each = var.nodes
 
@@ -58,19 +66,15 @@ data "talos_machine_configuration" "controlplane" {
 
   config_patches = [
     templatefile("${path.module}/patches/common.yaml", {
-      cluster_vip    = var.cluster_vip
-      node_subnet    = var.node_subnet
-      pod_subnet     = var.pod_subnet
-      service_subnet = var.service_subnet
-      node_cidr      = "${each.value}/${local.node_prefix_length}"
-      gateway        = var.gateway
-      dns_servers    = var.dns_servers
-      hostname       = each.key
-    }),
-    yamlencode({
-      cluster = {
-        allowSchedulingOnControlPlanes = true
-      }
+      cluster_vip        = var.cluster_vip
+      node_subnet        = var.node_subnet
+      pod_subnet         = var.pod_subnet
+      service_subnet     = var.service_subnet
+      node_cidr          = "${each.value}/${local.node_prefix_length}"
+      gateway            = var.gateway
+      dns_servers        = var.dns_servers
+      hostname           = each.key
+      kubernetes_version = var.kubernetes_version
     }),
   ]
 }

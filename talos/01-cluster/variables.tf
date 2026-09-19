@@ -22,9 +22,9 @@ variable "nodes" {
 }
 
 variable "talos_version" {
-  description = "Talos version. Bumping this triggers a rolling OS upgrade via talos_machine.image."
+  description = "Talos version. Drives both the installer image (talos_machine.image) and the machine-config contract (talos_machine_configuration.talos_version). >= v1.14 selects the multi-document config layout."
   type        = string
-  default     = "v1.13.4"
+  default     = "v1.14.1"
 }
 
 variable "talos_extensions" {

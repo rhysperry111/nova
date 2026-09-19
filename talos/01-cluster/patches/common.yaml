@@ -1,24 +1,42 @@
-# Talos v1.13 machine configuration patch.
+# Talos v1.14 machine configuration patch.
 #
-# Network is configured entirely with the modular config documents
-# (HostnameConfig, ResolverConfig, LinkAliasConfig, BondConfig,
-# Layer2VIPConfig) introduced in v1.13; the corresponding fields under
-# machine.network in v1alpha1 are all marked Deprecated.
+# Talos 1.14 splits most of v1alpha1 into discrete config documents. Where the
+# generator emits a document, that document is the only place the setting may
+# live — setting the old v1alpha1 field alongside it is a hard validation
+# error ("... is already set in v1alpha1 config"). Mapping from the old patch:
 #
-# Gotcha: Talos's generated base config already includes a HostnameConfig
-# with `auto: stable`, and `auto` + `hostname` are mutually exclusive. We
-# strip `auto` via the `$patch: delete` directive (see Talos config
-# patching docs) before setting `hostname`.
+#   machine.install                      -> UnattendedInstallConfig
+#   machine.kubelet.nodeIP               -> KubeNodeConfig
+#   machine.kernel.modules               -> KernelModuleConfig (one per module)
+#   machine.sysfs                        -> SysfsConfig
+#   cluster.allowSchedulingOnControlPlanes -> KubeNodeConfig (drop the taint)
+#   cluster.network.podSubnets/service   -> KubeNetworkConfig
+#   cluster.network.cni.name: none       -> delete KubeFlannelCNIConfig
+#   cluster.proxy.disabled: true         -> KubeProxyConfig.enabled: false
+#
+# Network is configured entirely with the modular documents (HostnameConfig,
+# ResolverConfig, LinkAliasConfig, BondConfig, Layer2VIPConfig).
+
+################################################################################
+# The one thing that cannot move to a document yet.
+#
+# Rook needs /var/lib/rook bind-mounted into the kubelet container with rshared
+# propagation. The 1.14 KubeletConfig document has no extraMounts field — its
+# ExtraMounts() returns nil — and /var/mnt is only mounted rslave+ro, so it is
+# not a substitute. The only source of kubelet extra mounts is the deprecated
+# v1alpha1 machine.kubelet block, which conflicts with the KubeletConfig
+# document, so we delete that document and own the kubelet stanza outright.
+#
+# This is safe with upgrade-k8s: GuessVersionContractKubelet checks whether a
+# KubeletConfig document exists and falls back to patching machine.kubelet.image
+# when it does not. Pinning the image here is required — without it Talos falls
+# back to its built-in default (Kubernetes 1.37.0 in the 1.14 SDK), which would
+# put the kubelet ahead of the control plane.
+################################################################################
 machine:
-  install:
-    diskSelector:
-      type: nvme
-    wipe: false
   kubelet:
-    nodeIP:
-      validSubnets:
-        - ${node_subnet}
-    # Rook needs a shared mount for /var/lib/rook with rshared propagation.
+    image: ghcr.io/siderolabs/kubelet:${kubernetes_version}
+    defaultRuntimeSeccompProfileEnabled: true
     extraMounts:
       - destination: /var/lib/rook
         type: bind
@@ -27,24 +45,68 @@ machine:
           - bind
           - rshared
           - rw
-  kernel:
-    modules:
-      - name: rbd
-      - name: nbd
-  # It cooks without this :upside_down:
-  sysfs:
-    devices.system.cpu.intel_pstate.max_perf_pct: "20"
-    devices.system.cpu.intel_pstate.no_turbo: "1"
-cluster:
-  network:
-    cni:
-      name: none
-    podSubnets:
-      - ${pod_subnet}
-    serviceSubnets:
-      - ${service_subnet}
-  proxy:
-    disabled: true
+---
+apiVersion: v1alpha1
+kind: KubeletConfig
+$patch: delete
+---
+# Install target. diskSelector is now a CEL expression rather than `type: nvme`.
+# `installer.image` is left alone: talos_machine owns it via its `image`
+# argument, driven by the image factory URL.
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.transport == "nvme"
+  wipe: false
+---
+# Kubelet node IP selection, plus scheduling on control planes. The generator
+# emits a node-role.kubernetes.io/control-plane:NoSchedule taint here; deleting
+# the taints map is the 1.14 equivalent of
+# cluster.allowSchedulingOnControlPlanes: true. Labels are left in place.
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+nodeIP:
+  validSubnets:
+    - ${node_subnet}
+taints:
+  $patch: delete
+---
+# Pod / service CIDRs.
+apiVersion: v1alpha1
+kind: KubeNetworkConfig
+podSubnets:
+  - ${pod_subnet}
+serviceSubnets:
+  - ${service_subnet}
+---
+# CNI: none. There is no `cni.name` field any more — the generator ships a
+# KubeFlannelCNIConfig document and deleting it is how you opt out. Cilium is
+# installed separately in 02-platform.
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+---
+# kube-proxy off; Cilium replaces it.
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false
+---
+# Ceph RBD / NBD kernel modules (one document per module).
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: rbd
+---
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: nbd
+---
+# It cooks without this :upside_down:
+apiVersion: v1alpha1
+kind: SysfsConfig
+params:
+  devices.system.cpu.intel_pstate.max_perf_pct: "20"
+  devices.system.cpu.intel_pstate.no_turbo: "1"
 ---
 # Static hostname. The base config Talos generates includes a default
 # HostnameConfig with `auto: stable`; `auto` and `hostname` are mutually
@@ -56,7 +118,7 @@ auto:
   $patch: delete
 hostname: ${hostname}
 ---
-# DNS resolvers. Replaces the deprecated machine.network.nameservers field.
+# DNS resolvers.
 apiVersion: v1alpha1
 kind: ResolverConfig
 nameservers:
@@ -65,11 +127,10 @@ nameservers:
 %{ endfor ~}
 ---
 # Pattern-aliased physical NICs. Each physical Ethernet link gets a stable
-# alias (nic0, nic1, ...) ordered by hardware address. Replaces the legacy
-# `bond.deviceSelectors: [{physical: true}]` selector. The CEL expression
+# alias (nic0, nic1, ...) ordered by hardware address. The CEL expression
 # matches non-virtual Ethernet links:
-#   - link.type == 1  → ARPHRD_ETHER (Ethernet, not loopback/IB/etc.)
-#   - link.kind == "" → not a bond/bridge/vlan/wireguard etc.
+#   - link.type == 1  -> ARPHRD_ETHER (Ethernet, not loopback/IB/etc.)
+#   - link.kind == "" -> not a bond/bridge/vlan/wireguard etc.
 apiVersion: v1alpha1
 kind: LinkAliasConfig
 name: nic%d
@@ -79,14 +140,14 @@ selector:
 # LACP bond over the two physical NICs (nic0, nic1). If a node has more than
 # two physical NICs the extras are aliased (nic2, ...) but not enslaved.
 # The default route is the entry with no `destination` (per Talos route
-# schema — `0.0.0.0/0` is rejected as not a valid prefix).
+# schema -- 0.0.0.0/0 is rejected as not a valid prefix).
 apiVersion: v1alpha1
 kind: BondConfig
 name: bond0
 bondMode: 802.3ad
 xmitHashPolicy: layer3+4
 miimon: 100
-# Best-practice delays for 802.3ad — talosctl validate warns without them.
+# Best-practice delays for 802.3ad -- talosctl validate warns without them.
 updelay: 200
 downdelay: 200
 mtu: 9000
