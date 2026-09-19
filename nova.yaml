@@ -70,8 +70,8 @@ r2:
 # =============================================================================
 versions:
   # Stage 01-cluster
-  talos: "v1.13.7"
-  kubernetes: "v1.36.3"
+  talos: "v1.14.1"
+  kubernetes: "v1.37.0"
 
   # Stage 02-platform
   cilium: "1.19.6"
