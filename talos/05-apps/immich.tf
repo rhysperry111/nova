@@ -257,6 +257,7 @@ resource "helm_release" "immich" {
           # into the container.
           persistence = {
             data = {
+              existingClaim = kubernetes_persistent_volume_claim_v1.immich_library.metadata[0].name
               globalMounts = [{
                 path = "/usr/src/app/upload"
               }]
