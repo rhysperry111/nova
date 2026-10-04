@@ -74,17 +74,17 @@ versions:
   kubernetes: "v1.37.0"
 
   # Stage 02-platform
-  cilium: "1.19.6"
-  rook_ceph: "v1.20.2"
+  cilium: "1.20.2"
+  rook_ceph: "v1.20.8"
   # Rook v1.20 stopped bundling the CSI drivers in the operator. The drivers are
   # now installed by a separate ceph-csi-drivers chart from the ceph-csi-operator
   # repo. This version tracks the ceph-csi-operator subchart pinned by rook-ceph
   # v1.20.1 (Chart.yaml dependency). Bump it in lockstep with rook_ceph.
-  ceph_csi_drivers: "1.0.4"
-  metrics_server: "3.13.1"
-  kubevirt: "v1.8.4"
-  cdi: "v1.65.0"
-  gateway_api: "v1.6.1"
+  ceph_csi_drivers: "1.1.0"
+  metrics_server: "3.14.0"
+  kubevirt: "v1.9.0"
+  cdi: "v1.66.1"
+  gateway_api: "v1.6.2"
 
   # Stage 03-platformservices
   cert_manager: "v1.21.0"
