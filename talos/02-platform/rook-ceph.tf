@@ -155,12 +155,12 @@ resource "helm_release" "rook_ceph_cluster" {
           cephx = {
             daemon = {
               keyRotationPolicy = "KeyGeneration"
-              keyGeneration = 2
+              keyGeneration = 3
               keyType = "aes256k"
             }
             csi = {
               keyRotationPolicy = "KeyGeneration"
-              keyGeneration = 2
+              keyGeneration = 3
               keepPriorKeyCountMax = 1
               keyType = "aes256k"
             }
