@@ -102,9 +102,9 @@ versions:
   # Stage 04-backups
   # NB: these are the LIVE values (from the old terraform.auto.tfvars), which
   # were ahead of the variables.tf defaults. Kept as-is so state doesn't move.
-  velero_chart: "12.1.0"
-  velero_plugin_for_aws_image: "velero/velero-plugin-for-aws@sha256:8f22ca85b7c26fb4fdbaea8b142c6f7bc35078a21a301df66d7f32fe67edf8ca"
-  snapshot_controller: "5.2.0"
+  velero_chart: "12.2.0"
+  velero_plugin_for_aws_image: "velero/velero-plugin-for-aws:v1.14.4"
+  snapshot_controller: "5.3.0"
 
   # Stage 05-apps
   home_assistant_os: "18.3"
