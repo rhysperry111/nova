@@ -127,18 +127,18 @@ resource "helm_release" "velero" {
         cleanUpCRDs      = false
         snapshotsEnabled = true
 
-        metrics = {
-          enabled = true
-          serviceMonitor = {
-            enabled = true
-          }
-          nodeAgentPodMonitor = {
-            enabled = true
-          }
-          prometheusRule = {
-            enabled = true
-          }
-        }
+#        metrics = {
+#          enabled = true
+#          serviceMonitor = {
+#            enabled = true
+#          }
+#          nodeAgentPodMonitor = {
+#            enabled = true
+#          }
+#          prometheusRule = {
+#            enabled = true
+#          }
+#        }
 
         # node-agent runs as a DaemonSet on every node. It's the component
         # that actually reads PV data through CSI snapshots and uploads it to
