@@ -151,6 +151,21 @@ resource "helm_release" "rook_ceph_cluster" {
           # for Ceph.
           devicePathFilter = "^/dev/disk/by-id/ata-"
         }
+        security = {
+          cephx = {
+            daemon = {
+              keyRotationPolicy = "KeyGeneration"
+              keyGeneration = 2
+              keyType = "aes256k"
+            }
+            csi = {
+              keyRotationPolicy = "KeyGeneration"
+              keyGeneration = 2
+              keepPriorKeyCountMax = 1
+              keyType = "aes256k"
+            }
+          }
+        }
       }
 
       # 4-node cluster, 2 OSDs each (8 OSDs total). size=3, min_size=2 lets
