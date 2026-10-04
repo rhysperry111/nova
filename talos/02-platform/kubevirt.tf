@@ -50,7 +50,7 @@ resource "kubectl_manifest" "kubevirt_cr" {
     spec = {
       monitorAccount = "kube-prometheus-stack-prometheus"
       monitorNamespace = "monitoring"
-      serviceMonitorNamespace = "kubevirt"
+#      serviceMonitorNamespace = "kubevirt"
       certificateRotateStrategy = {}
       configuration = {
         developerConfiguration = {

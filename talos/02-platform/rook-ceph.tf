@@ -48,9 +48,9 @@ resource "helm_release" "rook_ceph_operator" {
       # release below. installCsiOperator defaults to true, which installs the
       # bundled ceph-csi-operator subchart (and its CRDs) that the drivers chart
       # depends on; left implicit here.
-      monitoring = {
-        enabled = true
-      }
+#      monitoring = {
+#        enabled = true
+#      }
     }),
     var.rook_ceph_operator_values_override,
   ])
@@ -113,10 +113,10 @@ resource "helm_release" "rook_ceph_cluster" {
     yamlencode({
       operatorNamespace = kubernetes_namespace.rook_ceph.metadata[0].name
 
-      monitoring = {
-        enabled               = true
-        createPrometheusRules = true
-      }
+#      monitoring = {
+#        enabled               = true
+#        createPrometheusRules = true
+#      }
 
       cephClusterSpec = {
         mon = {

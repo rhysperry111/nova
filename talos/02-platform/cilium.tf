@@ -67,21 +67,21 @@ resource "helm_release" "cilium" {
         }
       }
 
-      dashboards = {
-        enabled = true
-        namespace = "monitoring"
-      }
+#      dashboards = {
+#        enabled = true
+#        namespace = "monitoring"
+#      }
 
       hubble = {
         enabled = true
         relay   = {
           enabled = true
-          prometheus = {
-            enabled = true
-            serviceMonitor = {
-              enabled = true
-            }
-        }
+#          prometheus = {
+#            enabled = true
+#            serviceMonitor = {
+#              enabled = true
+#            }
+#          }
         }
         ui = {
           enabled = true
@@ -98,50 +98,50 @@ resource "helm_release" "cilium" {
             }]
           }
         }
-        metrics = {
-          enableOpenMetrics = true
-          enabled = [
-            "dns:query",
-            "tcp",
-            "icmp",
-            "httpV2:exemplars=true;"
-          ]
-          serviceMonitor = {
-            enabled = true
-          }
-          dashboards = {
-            enabled = true
-            namespace = "monitoring"
-          }
-        }
+#        metrics = {
+#          enableOpenMetrics = true
+#          enabled = [
+#            "dns:query",
+#            "tcp",
+#            "icmp",
+#            "httpV2:exemplars=true;"
+#          ]
+#          serviceMonitor = {
+#            enabled = true
+#          }
+#          dashboards = {
+#            enabled = true
+#            namespace = "monitoring"
+#          }
+#        }
       }
 
       envoy = {
         enabled = true
-        prometheus = {
-          enabled = true
-          serviceMonitor = {
-            enabled = true
-          }
-        }
+#        prometheus = {
+#          enabled = true
+#          serviceMonitor = {
+#            enabled = true
+#          }
+#        }
       }
 
       operator = {
         replicas = 2
-        prometheus = {
-          enabled = true
-          serviceMonitor = {
-            enabled = true
-          }
-        }
+#        prometheus = {
+#          enabled = true
+#          serviceMonitor = {
+#            enabled = true
+#          }
+#        }
       }
 
-      prometheus = {
-        enabled = true
-        serviceMonitor = {
-          enabled = true
-        }
-      }
+#      prometheus = {
+#        enabled = true
+#        serviceMonitor = {
+#          enabled = true
+#        }
+#      }
     }),
     var.cilium_values_override,
   ])
