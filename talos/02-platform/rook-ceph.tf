@@ -51,6 +51,7 @@ resource "helm_release" "rook_ceph_operator" {
 #      monitoring = {
 #        enabled = true
 #      }
+       enableDiscoveryDaemon = true
     }),
     var.rook_ceph_operator_values_override,
   ])
@@ -125,6 +126,12 @@ resource "helm_release" "rook_ceph_cluster" {
         }
         mgr = {
           count = 2
+          modules = [
+            {
+              name = "rook"
+              enabled = true
+            }
+          ]
         }
         dashboard = {
           enabled = true
