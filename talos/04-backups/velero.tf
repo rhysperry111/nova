@@ -100,6 +100,13 @@ resource "kubernetes_config_map_v1" "node_agent_config" {
         memoryRequest = "512Mi"
         memoryLimit = "2Gi"
       }
+      backupPVC = {
+        "ceph-filesystem" = {
+          storageClass    = "ceph-filesystem"
+          readOnly        = true
+          spcNoRelabeling = true
+        }
+      }
     })
   }
 }
