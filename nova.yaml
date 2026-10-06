@@ -75,7 +75,7 @@ versions:
 
   # Stage 02-platform
   cilium: "1.20.2"
-  rook_ceph: "v1.20.8"
+  rook_ceph: "1.21.0"
   # Rook v1.20 stopped bundling the CSI drivers in the operator. The drivers are
   # now installed by a separate ceph-csi-drivers chart from the ceph-csi-operator
   # repo. This version tracks the ceph-csi-operator subchart pinned by rook-ceph
