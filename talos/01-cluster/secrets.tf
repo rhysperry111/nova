@@ -1,5 +1,11 @@
 resource "talos_machine_secrets" "this" {
-  talos_version = var.talos_version
+  talos_version = var.talos_config_contract
+
+  # Regenerating this mints a new PKI the running nodes won't trust. To
+  # re-attach to empty state, import it instead (ADOPT.md).
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "talos_client_configuration" "this" {

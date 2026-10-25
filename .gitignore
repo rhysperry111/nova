@@ -15,6 +15,10 @@ terraform.tfvars
 # Cluster credentials written by stage 01-cluster at apply time
 /talos/01-cluster/kubeconfig
 /talos/01-cluster/talosconfig
+# Rendered machine configs + re-adoption secrets (full cluster PKI)
+/talos/01-cluster/rendered/
+/talos/01-cluster/adopt/
+secrets.yaml
 
 # Vault init/unseal output
 vault.out

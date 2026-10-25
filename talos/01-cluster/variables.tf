@@ -19,12 +19,33 @@ variable "nodes" {
     "nova-3" = "10.205.10.13"
     "nova-4" = "10.205.10.14"
   }
+
+  validation {
+    condition     = length(var.nodes) == 4
+    error_message = "nodes.tf has exactly four talos_machine blocks (n0..n3); add/remove one there before changing the node count."
+  }
 }
 
 variable "talos_version" {
-  description = "Talos version. Drives both the installer image (talos_machine.image) and the machine-config contract (talos_machine_configuration.talos_version). >= v1.14 selects the multi-document config layout."
+  description = "Installed Talos version. Drives the installer image (talos_machine.image + UnattendedInstallConfig)."
   type        = string
-  default     = "v1.14.1"
+  default     = "v1.14.4"
+
+  validation {
+    condition     = can(regex("^v\\d+\\.\\d+\\.\\d+$", var.talos_version))
+    error_message = "talos_version must be a full release tag such as v1.14.4."
+  }
+}
+
+variable "talos_config_contract" {
+  description = "Machine-config contract (talos_machine_configuration / talos_machine_secrets talos_version). Pinned to the minor the cluster was created on; independent of talos_version."
+  type        = string
+  default     = "v1.14"
+
+  validation {
+    condition     = can(regex("^v\\d+\\.\\d+(\\.\\d+)?$", var.talos_config_contract))
+    error_message = "talos_config_contract must look like v1.14."
+  }
 }
 
 variable "talos_extensions" {
@@ -48,7 +69,12 @@ variable "talos_architecture" {
 variable "kubernetes_version" {
   description = "Kubernetes version. Bumping this triggers a rolling K8s upgrade via talos_cluster."
   type        = string
-  default     = "v1.36.2"
+  default     = "v1.37.0"
+
+  validation {
+    condition     = can(regex("^v\\d+\\.\\d+\\.\\d+$", var.kubernetes_version))
+    error_message = "kubernetes_version must be a full version tag such as v1.37.0."
+  }
 }
 
 variable "pod_subnet" {
@@ -79,4 +105,10 @@ variable "dns_servers" {
   description = "Upstream DNS servers configured on each node."
   type        = list(string)
   default     = ["10.205.10.1"]
+}
+
+variable "write_machine_configs" {
+  description = "Write each node's rendered machine config to rendered/<node>.yaml (contains the full PKI)."
+  type        = bool
+  default     = false
 }

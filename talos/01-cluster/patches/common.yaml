@@ -51,10 +51,13 @@ kind: KubeletConfig
 $patch: delete
 ---
 # Install target. diskSelector is now a CEL expression rather than `type: nvme`.
-# `installer.image` is left alone: talos_machine owns it via its `image`
-# argument, driven by the image factory URL.
+# `installer.image` must match talos_machine.image: the generator default is
+# the SDK's own v1.14.0, so a fresh node would install that and talos_machine
+# would then try to upgrade + drain before the API exists.
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
+installer:
+  image: ${installer_image}
 provisioning:
   diskSelector:
     match: disk.transport == "nvme"

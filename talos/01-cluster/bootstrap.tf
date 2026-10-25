@@ -4,11 +4,17 @@
 # `talos_cluster` bootstraps etcd on the first control-plane node and tracks
 # the desired Kubernetes version. Bumping var.kubernetes_version triggers a
 # rolling Kubernetes upgrade (control-plane components first, then kubelets,
-# one node at a time — same flow as `talosctl upgrade-k8s`).
+# one node at a time — same flow as `talosctl upgrade-k8s`). Waits on all four
+# machines so a combined Talos + K8s bump finishes the OS upgrades first.
 ################################################################################
 
 resource "talos_cluster" "this" {
-  depends_on = [talos_machine.n0]
+  depends_on = [
+    talos_machine.n0,
+    talos_machine.n1,
+    talos_machine.n2,
+    talos_machine.n3,
+  ]
 
   node                 = local.ordered_nodes[0].ip
   endpoint             = local.ordered_nodes[0].ip
@@ -34,6 +40,10 @@ data "talos_cluster_health" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   endpoints            = values(var.nodes)
   control_plane_nodes  = values(var.nodes)
+
+  timeouts = {
+    read = "15m"
+  }
 }
 
 resource "talos_cluster_kubeconfig" "this" {

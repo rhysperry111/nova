@@ -55,7 +55,7 @@ data "talos_machine_configuration" "controlplane" {
   machine_type       = "controlplane"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
   kubernetes_version = var.kubernetes_version
-  talos_version      = var.talos_version
+  talos_version      = var.talos_config_contract
 
   # Don't render commented-out examples / docs into the base config. Without
   # this the default HostnameConfig + ResolverConfig examples (with
@@ -66,6 +66,7 @@ data "talos_machine_configuration" "controlplane" {
 
   config_patches = [
     templatefile("${path.module}/patches/common.yaml", {
+      installer_image    = local.installer_image
       cluster_vip        = var.cluster_vip
       node_subnet        = var.node_subnet
       pod_subnet         = var.pod_subnet
@@ -77,4 +78,13 @@ data "talos_machine_configuration" "controlplane" {
       kubernetes_version = var.kubernetes_version
     }),
   ]
+}
+
+# Rendered configs for `talosctl apply-config --dry-run` (see ADOPT.md).
+resource "local_sensitive_file" "machine_config" {
+  for_each = var.write_machine_configs ? var.nodes : {}
+
+  content         = data.talos_machine_configuration.controlplane[each.key].machine_configuration
+  filename        = "${path.module}/rendered/${each.key}.yaml"
+  file_permission = "0600"
 }

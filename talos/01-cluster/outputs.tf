@@ -17,3 +17,23 @@ output "nodes" {
   description = "Node name to IP mapping."
   value       = var.nodes
 }
+
+output "schematic_id" {
+  description = "Image Factory schematic ID."
+  value       = talos_image_factory_schematic.this.id
+}
+
+output "installer_image" {
+  description = "Installer image used for first installs and upgrades."
+  value       = local.installer_image
+}
+
+output "iso_url" {
+  description = "Boot ISO matching the installer (for maintenance mode)."
+  value       = data.talos_image_factory_urls.this.urls.iso
+}
+
+output "pxe_url" {
+  description = "iPXE script URL matching the installer."
+  value       = data.talos_image_factory_urls.this.urls.pxe
+}

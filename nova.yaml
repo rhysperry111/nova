@@ -70,7 +70,8 @@ r2:
 # =============================================================================
 versions:
   # Stage 01-cluster
-  talos: "v1.14.1"
+  talos: "v1.14.4"
+  talos_contract: "v1.14" # Config contract the cluster was created on; not bumped on upgrades.
   kubernetes: "v1.37.0"
 
   # Stage 02-platform

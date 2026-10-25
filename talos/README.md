@@ -81,20 +81,31 @@ won't touch what stages 2/3 created.
 
 | File | What it does |
 | --- | --- |
-| [versions.tf](01-cluster/versions.tf) | `siderolabs/talos` 0.12-alpha + `hashicorp/local` |
-| [variables.tf](01-cluster/variables.tf) | Cluster name, VIP, node IPs, gateway, DNS, Talos/K8s versions, subnets, extensions |
+| [versions.tf](01-cluster/versions.tf) | `siderolabs/talos` 0.12.0 (exact pin) + `hashicorp/local` |
+| [variables.tf](01-cluster/variables.tf) | Cluster name, VIP, node IPs, gateway, DNS, Talos OS version, config contract, K8s version, subnets, extensions |
 | [providers.tf](01-cluster/providers.tf) | `provider "talos"` (no kubeconfig — cluster doesn't exist yet) |
-| [secrets.tf](01-cluster/secrets.tf) | `talos_machine_secrets` + client config |
-| [machine-config.tf](01-cluster/machine-config.tf) | Image factory schematic + URLs + per-node machine config |
-| [nodes.tf](01-cluster/nodes.tf) | Four `talos_machine` resources chained via `depends_on` (rolling upgrades) |
-| [bootstrap.tf](01-cluster/bootstrap.tf) | `talos_cluster` (etcd bootstrap + K8s version), kubeconfig, local files |
-| [outputs.tf](01-cluster/outputs.tf) | Paths to talosconfig/kubeconfig, endpoint |
-| [patches/common.yaml](01-cluster/patches/common.yaml) | NVMe install, LACP bond, VIP, Rook mounts, CNI=none, kube-proxy=disabled |
+| [secrets.tf](01-cluster/secrets.tf) | `talos_machine_secrets` (`prevent_destroy`), client config, ephemeral drain kubeconfig |
+| [machine-config.tf](01-cluster/machine-config.tf) | Image factory schematic + URLs + per-node machine config, optional rendered copies |
+| [nodes.tf](01-cluster/nodes.tf) | Four `talos_machine` resources chained via `depends_on` (rolling installs/upgrades) |
+| [bootstrap.tf](01-cluster/bootstrap.tf) | `talos_cluster` (etcd bootstrap + K8s version), health gate, kubeconfig, local files |
+| [outputs.tf](01-cluster/outputs.tf) | Paths to talosconfig/kubeconfig, endpoint, installer image, ISO/PXE URLs |
+| [patches/common.yaml](01-cluster/patches/common.yaml) | Installer image + NVMe install, LACP bond, VIP, Rook mounts, CNI=none, kube-proxy=disabled |
 
 State here is the whole Talos cluster: machine secrets, every node's running
 OS image, every node's applied machine config, K8s version. Bumping
-`var.talos_version` or `var.kubernetes_version` and re-applying is the
-upgrade.
+`versions.talos` or `versions.kubernetes` in `nova.yaml` and re-applying is
+the upgrade.
+
+Two separate Talos versions live in `nova.yaml`:
+
+- `versions.talos` (`var.talos_version`, e.g. `v1.14.4`) is the installed OS.
+  It picks the Image Factory installer, which is written both into each node's
+  `UnattendedInstallConfig` (first install) and into `talos_machine.image`
+  (in-place upgrades).
+- `versions.talos_contract` (`var.talos_config_contract`, `v1.14`) is the
+  machine-config contract the cluster was created on. It decides which
+  documents and defaults the generator emits, and should stay put across
+  normal OS upgrades.
 
 ### [02-platform/](02-platform/) — CNI + CSI
 
@@ -134,13 +145,20 @@ booted Talos installer — there is no machine config on the install disk
 yet, so the API listens on the node's primary IP without auth and accepts a
 single config payload.
 
-1. **Boot each of the 4 nodes** from a Talos ISO matching
-   `var.talos_version`. Easiest path: from `01-cluster/`, run
-   `tofu apply -target=talos_image_factory_schematic.this -target=data.talos_image_factory_urls.this`,
-   then look at the ISO URL in the data source output and PXE / USB / IPMI-boot
-   from it. You can also grab a vanilla ISO from
-   [factory.talos.dev](https://factory.talos.dev) if you don't have
-   extensions configured yet.
+1. **Boot each of the 4 nodes** from a Talos 1.14+ ISO (the v1.14 contract
+   config is multi-document, which older maintenance mode can't parse).
+   Easiest path, from `01-cluster/`:
+
+   ```sh
+   tofu apply -target=data.talos_image_factory_urls.this
+   echo 'data.talos_image_factory_urls.this.urls.iso' | tofu console
+   ```
+
+   and PXE / USB / IPMI-boot that. The ISO's exact version doesn't matter
+   much: the config carries `UnattendedInstallConfig.installer.image`, so the
+   node installs straight onto `versions.talos` + the schematic, which is what
+   lets `talos_machine` finish without an upgrade (and without needing a
+   Kubernetes API to drain against).
 
 2. **Don't run `talosctl apply-config` by hand** — leave the nodes in
    maintenance mode. The `talos_machine` resources in stage 1 will apply the
@@ -177,29 +195,71 @@ single config payload.
    talosctl -e 10.205.10.11 -n 10.205.10.11 --insecure version
    ```
 
+### What a fresh build does
+
+`make cluster` against four nodes in maintenance mode:
+
+1. Secrets, schematic and per-node configs are generated locally.
+2. `talos_machine.n0` → `n3`, one at a time: apply the config over the
+   insecure maintenance API, the node installs onto the NVMe disk from the
+   configured installer and reboots, Terraform waits for CRI to be healthy,
+   confirms the running version/schematic already match `image`, done.
+3. `talos_cluster` bootstraps etcd on nova-1 and waits for etcd / apid /
+   kubelet health on all four control planes.
+4. `talos_cluster_health` waits for the Kubernetes control plane. Node-Ready
+   and CoreDNS checks are skipped automatically while CNI is `none`, so this
+   passes before Cilium exists.
+5. `kubeconfig` and `talosconfig` are written for stage 02 and for you.
+
+### Rebuilding one node
+
+`nN` is the Nth node sorted by hostname (`n0` = nova-1 … `n3` = nova-4).
+
+```sh
+# healthy node: leave etcd, wipe STATE/EPHEMERAL, reboot into maintenance mode
+talosctl -n 10.205.10.12 reset --graceful --reboot \
+  --system-labels-to-wipe STATE --system-labels-to-wipe EPHEMERAL
+# dead node instead: talosctl -n <healthy cp> etcd remove-member <name>; kubectl delete node <name>
+
+cd talos/01-cluster && tofu apply -replace=talos_machine.n1
+```
+
+Create re-runs the fresh-install path for just that node. `depends_on`
+doesn't propagate replacement, so the rest of the chain is left alone.
+
 ## Day 2: upgrades and config changes
 
 All three of these run from `01-cluster/` and are a single `tofu apply`:
 
 ### Talos OS upgrade
 
-Bump `var.talos_version`. The image factory data source resolves a new
-installer URL, every `talos_machine.nN.image` changes, and the chain
-re-applies one node at a time with `drain_on_upgrade = true` (cordons,
-drains respecting PDBs, A/B-upgrades, reboots, waits for ready, uncordons).
-Rook's auto-managed PDBs hold the drain back if Ceph would lose redundancy
-— see [02-platform/rook-ceph.tf](02-platform/rook-ceph.tf).
+Bump `versions.talos` in `nova.yaml` (leave `versions.talos_contract` alone).
+The image factory data source resolves a new installer URL, every
+`talos_machine.nN.image` changes, and the chain re-applies one node at a time
+with `drain_on_upgrade = true` (pull, install, cordon, drain respecting PDBs,
+reboot, wait for ready, uncordon), then pushes the matching
+`installer.image` into the config without a reboot. Rook's auto-managed PDBs
+hold the drain back if Ceph would lose redundancy — see
+[02-platform/rook-ceph.tf](02-platform/rook-ceph.tf).
 
 ### Kubernetes upgrade
 
-Bump `var.kubernetes_version`. `talos_cluster.this` picks up the drift and
-runs the same rolling upgrade `talosctl upgrade-k8s` would — control plane
-first, then kubelets, one node at a time.
+Bump `versions.kubernetes`. `talos_cluster.this` runs the same rolling
+upgrade `talosctl upgrade-k8s` would: control plane first, then kubelets, one
+node at a time. The same variable feeds the machine configs (so a rebuilt
+node joins at the right version), and `ignore_kubernetes_upgrade_drift` stops
+`talos_machine` from pushing those image tags itself. Bumping Talos and
+Kubernetes together is fine: `talos_cluster` waits for the OS upgrade chain to
+finish first.
 
 ### Machine config changes
 
 Edit [01-cluster/patches/common.yaml](01-cluster/patches/common.yaml) (or anything
-else feeding `data.talos_machine_configuration.controlplane`). The provider
-hashes the applied config on each refresh; drift triggers a re-apply
-through `talos_machine`, riding the same chained drain → reboot → rejoin
-flow.
+else feeding `data.talos_machine_configuration.controlplane`). The provider hashes
+the applied config on each refresh, and drift triggers a re-apply through
+`talos_machine` in apply mode `auto`, one node at a time. Config-only changes
+are **not** drained: most 1.14 changes apply live, and the few that need a
+reboot reboot the node directly. If unsure, render the configs with
+`tofu apply -var write_machine_configs=true -target=local_sensitive_file.machine_config`
+and check each one with `talosctl -n <ip> apply-config --dry-run -f rendered/<node>.yaml`
+first.

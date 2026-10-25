@@ -92,6 +92,7 @@ def generate_cluster(cfg: dict, root: str) -> None:
         "",
         "# Versions",
         tfvars_line("talos_version", v["talos"]),
+        tfvars_line("talos_config_contract", v["talos_contract"]),
         tfvars_line("kubernetes_version", v["kubernetes"]),
         "",
         "# Networking",
