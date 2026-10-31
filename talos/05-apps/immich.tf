@@ -266,6 +266,7 @@ resource "helm_release" "immich" {
 
           controllers = {
             main = {
+              strategy = "Recreate"
               containers = {
                 main = {
                   env = local.immich_db_env
@@ -321,6 +322,9 @@ resource "helm_release" "immich" {
             main = {
               containers = {
                 main = {
+                  env = {
+                    MACHINE_LEARNING_MODEL_REVISION = "v2"
+                  }
                   resources = {
                     limits = {
                       memory = "6Gi"
