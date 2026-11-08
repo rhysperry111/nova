@@ -152,6 +152,28 @@ resource "kubernetes_service_v1" "your_spotify_mongo" {
 # Server (API)
 ################################################################################
 
+resource "kubernetes_persistent_volume_claim_v1" "your_spotify_server" {
+  metadata {
+    name      = "your-spotify-server"
+    namespace = kubernetes_namespace_v1.your_spotify.metadata[0].name
+  }
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = var.your_spotify_mongo_storage_class
+    resources {
+      requests = {
+        storage = var.your_spotify_mongo_size
+      }
+    }  
+  }  
+  # History is only partially re-syncable from Spotify — let the resource leak
+  # in TF state rather than have a misplaced destroy nuke it. Grow in place by
+  # bumping the size var + `kubectl edit pvc` (ceph-csi expands online).
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "kubernetes_deployment_v1" "your_spotify_server" {
   metadata {
     name      = "your-spotify-server"
@@ -174,10 +196,14 @@ resource "kubernetes_deployment_v1" "your_spotify_server" {
       spec {
         container {
           name  = "server"
-          image = "yooooomi/your_spotify_server:${var.your_spotify_image_tag}"
+          image = "ghcr.io/thetastyhanuta/your_spotify_server:${var.your_spotify_image_tag}"
           port {
             container_port = 8080
             name           = "http"
+          }
+          volume_mount {
+            name       = "imports"
+            mount_path = "/tmp/imports"
           }
 
           # API_ENDPOINT MUST be the externally reachable API URL — the server
@@ -226,6 +252,12 @@ resource "kubernetes_deployment_v1" "your_spotify_server" {
             limits = {
               memory = "1Gi"
             }
+          }
+        }
+        volume {
+          name = "imports"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim_v1.your_spotify_server.metadata[0].name
           }
         }
       }
@@ -313,7 +345,7 @@ resource "kubernetes_deployment_v1" "your_spotify_web" {
       spec {
         container {
           name  = "web"
-          image = "yooooomi/your_spotify_client:${var.your_spotify_image_tag}"
+          image = "ghcr.io/thetastyhanuta/your_spotify_client:${var.your_spotify_image_tag}"
           port {
             container_port = 3000
             name           = "http"
