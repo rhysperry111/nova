@@ -187,6 +187,9 @@ resource "kubernetes_deployment_v1" "your_spotify_server" {
         app = "your-spotify-server"
       }
     }
+    strategy {
+      type = "Recreate"
+    }
     template {
       metadata {
         labels = {
@@ -194,6 +197,10 @@ resource "kubernetes_deployment_v1" "your_spotify_server" {
         }
       }
       spec {
+        security_context {
+          fs_group = 1000
+          fs_group_change_policy = "OnRootMismatch"
+        }
         container {
           name  = "server"
           image = "ghcr.io/thetastyhanuta/your_spotify_server:${var.your_spotify_image_tag}"
