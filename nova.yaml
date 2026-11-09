@@ -125,5 +125,5 @@ versions:
 
   # your_spotify — self-hosted Spotify stats. Server + web client share one
   # release tag (bump together); Mongo is the backing store.
-  your_spotify_image_tag: "1.20.1-fork.7"
+  your_spotify_image_tag: "1.20.1-fork.8"
   your_spotify_mongo_image: "mongo:8.0"
